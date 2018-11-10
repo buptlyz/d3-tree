@@ -45,9 +45,9 @@
     return 2;
   }
 
-  const height = (R, dx, leafCount) => (2*R + dx/2) * leafCount
-  const translateX = R => R
-  const translateY = (R, dx, leafCount) => height(R, dx, leafCount)/2 - R
+  const calcHeight = (R, dx, leafCount) => (2*R + dx/2) * leafCount
+  const svgTranslateX = R => R
+  const svgTranslateY = (R, dx, leafCount) => calcHeight(R, dx, leafCount)/2 - R
 
   const textTranslateX = d => -(d.data.name.length * fontSize / 4)
 
@@ -80,17 +80,17 @@
     console.log("x0: ", x0, "x1: ", x1)
     console.log("leafCount: ", leafCount)
   
-    console.log('svg height: ', height(R, dx, leafCount))
+    console.log('svg height: ', calcHeight(R, dx, leafCount))
     d3.select('#tree').append('svg');
     const svg = d3.select('#tree svg'/*DOM.svg(width, x1 - x0 + root.dx * 2)*/)
         .style("width", "100%")
-        .style("height", height(R, dx, leafCount));      // 高度为叶节点数目 * (2R + dx/2)
+        .style("height", calcHeight(R, dx, leafCount));      // 高度为叶节点数目 * (2R + dx/2)
   
     const g = svg.append("g")                     // tree的g
         .attr("font-family", "sans-serif")
         .attr("font-size", 10)
         // .attr("transform", `translate(${root.dy / 3},${root.dx - x0})`);
-        .attr("transform", `translate(${translateX(R)},${translateY(R, dx, leafCount)})`);
+        .attr("transform", `translate(${svgTranslateX(R)},${svgTranslateY(R, dx, leafCount)})`);
     
     console.log("links: ", root.links())
     const link = g.append("g")      // link的g
