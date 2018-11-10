@@ -7,9 +7,9 @@
   const fontSize = 12
   
   let leafCount = 0
-  const calcHeight = (R, dx, leafCount) => (2*R + dx/2) * leafCount
-  const calcSVGTranslateX = R => R
-  const calcSVGTranslateY = (R, dx, leafCount) => calcHeight(R, dx, leafCount)/2 - R
+  const calcHeight = (R, dx, leafCount) => (2*R + dx/2) * leafCount + R
+  const calcSVGTranslateX = R => 2*R
+  const calcSVGTranslateY = (R, dx, leafCount) => calcHeight(R, dx, leafCount)/2 
   const textTranslateX = d => -(d.data.name.length * fontSize / 4)
 
   const separation = (R, dx) => (a, b) => {
