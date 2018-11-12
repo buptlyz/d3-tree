@@ -1,3 +1,96 @@
+const data = {
+  name: '地点',
+  id: '1',
+  children: [{
+    name: '欧洲游',
+    id: '11',
+    children: [{
+      name: '挪威游',
+      id: '111'
+    }, {
+      name: '冰岛游',
+      id: '112'
+    }]
+  }, {
+    name: '北美游',
+    id: '12',
+    children: [{
+      name: '美国游',
+      id: '121',
+      children: [{
+        name: '加州游',
+        id: '1211'
+      }, {
+        name: '纽约游',
+        id: '1212'
+      }]
+    }, {
+      name: '加拿大游',
+      id: '122'
+    }]
+  }, {
+    name: '亚洲游',
+    id: '13',
+    children: [{
+      name: '日本游',
+      id: '131'
+    }, {
+      name: '韩国游',
+      id: '132'
+    }, {
+      name: '新马泰游',
+      id: '133'
+    }]
+  }]
+}
+
+const newData = {
+  name: '地点',
+  id: '1',
+  children: [{name: '非洲游', id: '15'},{
+    name: '欧洲游',
+    id: '11',
+    children: [{
+      name: '挪威游',
+      id: '111'
+    }, {
+      name: '冰岛游',
+      id: '112'
+    }]
+  }, {
+    name: '北美游',
+    id: '12',
+    children: [{
+      name: '美国游',
+      id: '121',
+      children: [{
+        name: '加州游',
+        id: '1211'
+      }, {
+        name: '纽约游',
+        id: '1212'
+      }]
+    }, {
+      name: '加拿大游',
+      id: '122'
+    }]
+  }, {
+    name: '亚洲游',
+    id: '13',
+    children: [{
+      name: '日本游',
+      id: '131'
+    }, {
+      name: '韩国游',
+      id: '132'
+    }, {
+      name: '新马泰游',
+      id: '133'
+    }]
+  }]
+}
+
+ 
  const R = 30
  const width = 960
  const height = 960
@@ -14,18 +107,15 @@
  }
 
 class Tree {
-  constructor(data, selector) {
-    if (!data) {
-      throw new TypeError('need hierarchy data');
-    }
-    this.data = data;
+  constructor(selector) {
+    this.data = null;
+    this.root = null;
     this.container = selector ? document.querySelector(selector) : document.querySelector('body');
     
-    this.root = null;
     this.tree = d3.tree().nodeSize([dx, dy]).separation(separation)
     this.diagonal = d3.linkHorizontal().x(d => d.y).y(d => d.x)
 
-    this.init();
+    this.eventEmitter = Object.create(null);
 
     // 事件绑定
     this.handleNodeClick = this.handleNodeClick.bind(this)
@@ -36,12 +126,33 @@ class Tree {
   }
 
   /************************************************************ 
+   * eventEmitter
+   * type: edit, add, delete
+   ************************************************************/
+
+  on(type, fn) {
+    if (this.eventEmitter[type]) {
+      this.eventEmitter[type].push(fn)
+    } else {
+      this.eventEmitter[type] = [fn];
+    }
+  }
+
+  clearEventEmitter() {
+    this.eventEmitter = null;
+  }
+
+  /************************************************************ 
    * 初始化
    ************************************************************/
 
-  init() {
-    this.initRoot();
+  init(data) {
+    this.data = data;
+    this.initRoot(data);
     this.initSVG();
+    if (this.root) {
+      this.render(this.root)
+    }
   }
 
   /************************************************************ 
@@ -86,13 +197,13 @@ class Tree {
    * 更新树
    ************************************************************/
 
-  updateTreeWithNewData(data, d) {
+  update(data, d) {
     this.data = data;
     this.initRoot()
-    this.update(d)
+    this.render(d)
   }
 
-  update(source) {
+  render(source) {
     const root = this.root;
 
     // Compute the new tree layout.
@@ -215,24 +326,31 @@ class Tree {
   handleNodeClick(d) {
     // toggle toolkit
     this.toggleToolkit(d);
-    this.update(d);
+    this.render(d);
   }
   // 编辑
   handleEditClick(d) {
-    console.log("node id: ", d.id, ' action: edit')
+    const editFnArr = this.eventEmitter.edit;
+    if (editFnArr) {
+      editFnArr.forEach(fn => fn.call(null, d))
+    }
   }
   // 添加 
   handleAddClick(d) {
-    console.log("node id: ", d.id, ' action: add')
-    this.updateTreeWithNewData(newData, d);
+    const addFnArr = this.eventEmitter.add;
+    if (addFnArr) {
+      addFnArr.forEach(fn => fn.call(null, d))
+    }
   }
   // 删除 
   handleDeleteClick(d) {
-    console.log("node id: ", d.id, ' action: delete')
+    const deleteFnArr = this.eventEmitter.delete;
+    if (deleteFnArr) {
+      deleteFnArr.forEach(fn => fn.call(null, d))
+    }
   }
   // toggle collapse
   handleToggleCollapseClick(d) {
-    console.log("node id: ", d.id, ' action: toggle collapse')
     this.toggleCollapse(d);
   }
 
@@ -243,7 +361,7 @@ class Tree {
   // 展开/收起子树
   toggleCollapse(d) {
     d.children = d.children ? null : d._children;
-    this.update(d)
+    this.render(d)
   }
 
   // 展开/收起操作按钮
@@ -299,99 +417,35 @@ class Tree {
   }
 }
 
+class App extends React.Component {
+  constructor() {
+    super();
+    this.treeInstance = null;
 
-const data = {
-  name: '地点',
-  id: '1',
-  children: [{
-    name: '欧洲游',
-    id: '11',
-    children: [{
-      name: '挪威游',
-      id: '111'
-    }, {
-      name: '冰岛游',
-      id: '112'
-    }]
-  }, {
-    name: '北美游',
-    id: '12',
-    children: [{
-      name: '美国游',
-      id: '121',
-      children: [{
-        name: '加州游',
-        id: '1211'
-      }, {
-        name: '纽约游',
-        id: '1212'
-      }]
-    }, {
-      name: '加拿大游',
-      id: '122'
-    }]
-  }, {
-    name: '亚洲游',
-    id: '13',
-    children: [{
-      name: '日本游',
-      id: '131'
-    }, {
-      name: '韩国游',
-      id: '132'
-    }, {
-      name: '新马泰游',
-      id: '133'
-    }]
-  }]
+    this.handleAddClick = this.handleAddClick.bind(this)
+  }
+
+  componentDidMount() {
+    this.treeInstance = new Tree('#tree')
+    this.treeInstance.init(data)
+    this.treeInstance.on('add', this.handleAddClick)
+  }
+
+  render() {
+    return (
+      <div>
+        <div id="tree"></div>
+      </div>
+    )
+  }
+
+  handleAddClick(d) {
+    console.log(d.data.name)
+    this.treeInstance.update(newData, d)
+  }
 }
 
-const newData = {
-  name: '地点',
-  id: '1',
-  children: [{name: '非洲游', id: '15'},{
-    name: '欧洲游',
-    id: '11',
-    children: [{
-      name: '挪威游',
-      id: '111'
-    }, {
-      name: '冰岛游',
-      id: '112'
-    }]
-  }, {
-    name: '北美游',
-    id: '12',
-    children: [{
-      name: '美国游',
-      id: '121',
-      children: [{
-        name: '加州游',
-        id: '1211'
-      }, {
-        name: '纽约游',
-        id: '1212'
-      }]
-    }, {
-      name: '加拿大游',
-      id: '122'
-    }]
-  }, {
-    name: '亚洲游',
-    id: '13',
-    children: [{
-      name: '日本游',
-      id: '131'
-    }, {
-      name: '韩国游',
-      id: '132'
-    }, {
-      name: '新马泰游',
-      id: '133'
-    }]
-  }]
-}
-
-const treeInstance = new Tree(data, '#tree')
-treeInstance.update(treeInstance.root)
-window.treeInstance = treeInstance
+ReactDOM.render(
+  <App />,
+  document.getElementById('app')
+)
