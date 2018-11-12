@@ -1,56 +1,108 @@
 (function() {
-  const margin = ({top: 10, right: 120, bottom: 10, left: 40})
+  let root = null;
   const width = 960
   const dx = 10
-  const dy = width / 6
+  const dy = 160
   const R = 30
   const fontSize = 12
   
   let leafCount = 0
-  const calcHeight = (R, dx, leafCount) => (2*R + dx/2) * leafCount + R
+  const calcHeight = (R, dx, leafCount) => (2*R + dx/2) * leafCount + 2*R
   const calcSVGTranslateX = R => 2*R
-  const calcSVGTranslateY = (R, dx, leafCount) => calcHeight(R, dx, leafCount)/2 
-  const textTranslateX = d => -(d.data.name.length * fontSize / 4)
+  const calcSVGTranslateY = (R, dx, leafCount) => calcHeight(R, dx, leafCount)/2 - R
+  const textTranslateX = d => -(d.data.name.length * fontSize / 2)
 
   const separation = (R, dx) => (a, b) => {
     if (a.parent === b.parent) {
-      // 同一层级
-      const aChildrenCount = a.height === 0 ? 1 : a._children.length
-      const bChildrenCount = b.height === 0 ? 1 : b._children.length
-
-      const separation = (2*R/dx + 0.5) * (aChildrenCount + bChildrenCount) / 2
-
-      return separation
+      return ((2*R + 1)*(a.value + b.value)/2) / dx
+    } else {
+      return 2
     }
-
-    return 2;
   }
 
   const tree = d3.tree().nodeSize([dx, dy]).separation(separation(R, dx))
   const diagonal = d3.linkHorizontal().x(d => d.y).y(d => d.x)
 
   const data = {
-    name: 'root',
+    name: '地点',
+    id: '1',
     children: [{
-      name: 'level-1-1',
+      name: '欧洲游',
+      id: '11',
       children: [{
-        name: 'level-2-1'
+        name: '挪威游',
+        id: '111'
+      }, {
+        name: '冰岛游',
+        id: '112'
       }]
     }, {
-      name: 'level-1-2',
+      name: '北美游',
+      id: '12',
       children: [{
-        name: 'level-2-2'
+        name: '美国游',
+        id: '121',
+        children: [{
+          name: '加州游',
+          id: '1211'
+        }, {
+          name: '纽约游',
+          id: '1212'
+        }]
       }, {
-        name: 'level-2-3'
+        name: '加拿大游',
+        id: '122'
       }]
     }, {
-      name: 'level-1-3',
+      name: '亚洲游',
+      id: '13',
       children: [{
-        name: 'level-2-4'
+        name: '日本游',
+        id: '131'
       }, {
-        name: 'level-2-5'
+        name: '韩国游',
+        id: '132'
       }, {
-        name: 'level-2-5'
+        name: '新马泰游',
+        id: '133'
+      }]
+    }]
+  }
+
+  const newData = {
+    name: '地点',
+    children: [{
+      name: '欧洲游',
+      children: [{
+        name: '挪威游'
+      }, {
+        name: '冰岛游'
+      }]
+    }, {
+      name: '北美游',
+      children: [{
+        name: '美国游',
+        children: [{
+          name: '加州游'
+        }, {
+          name: '纽约游'
+        }]
+      }, {
+        name: '加拿大游'
+      }]
+    }, {
+      name: '亚洲游',
+      children: [{
+        name: '日本游'
+      }, {
+        name: '韩国游'
+      }, {
+        name: '新马泰游'
+      }]
+    }, {
+      name: '非洲游',
+      children: [{
+        name: '刚果游'
       }]
     }]
   }
@@ -73,6 +125,8 @@
     // add 
     const handleAddClick = d => {
       console.log("node id: ", d.id, ' action: add')
+      root = getRoot(newData);
+      update(d);
     }
     // delete 
     const handleDeleteClick = d => {
@@ -94,57 +148,62 @@
     // 给所有node添加操作节点
     const addOpNode = (node) => {
       if (!node) throw new TypeError('need valid node')
-      // 上 编辑
-      const topG = node.append('g').on('click', handleEditClick)
-      topG.append('circle')
+      // 左下 编辑
+      const LBG = node.append('g').on('click', handleEditClick)
+      LBG.append('circle')
         .attr("r", R/2)
         .attr('fill', '#ccc')
-        .attr("cy", -(R + R/2))
-      topG.append('text').text('编辑')
-      .attr("y", -(R + fontSize))
-      // 下 添加
-      const bottomG = node.append('g').on('click', handleAddClick)
-      bottomG.append('circle')
+        .attr("cx", -1.1*R)
+        .attr("cy", R)
+      LBG.append('text').text('编辑')
+      .attr("x", -(R + fontSize))
+      .attr("y", 0.7*R + fontSize)
+      // 右下 添加
+      const RBG = node.append('g').on('click', handleAddClick)
+      RBG.append('circle')
         .attr("r", R/2)
         .attr('fill', '#ccc')
-        .attr("cy", R + R/2)
-      bottomG.append('text').text('添加')
-      .attr("y", R + fontSize)
+        .attr("cx", 1.1*R)
+        .attr("cy", R)
+      RBG.append('text').text('添加')
+      .attr("x", 0.5*R + fontSize)
+      .attr("y", 0.7*R + fontSize)
       // 右 展开
-      const rightG = node.append('g').on('click', handleToggleCollapseClick)
-      rightG.append('circle')
+      const RG = node.append('g').on('click', handleToggleCollapseClick)
+      RG.append('circle')
         .attr("r", R/2)
         .attr('fill', '#ccc')
         .attr("cx", R + R/2)
-      rightG.append('text')
+      RG.append('text')
       .text('展开')
       .attr("x", R)
       // 左 删除
-      const leftG = node.append('g').on('click', handleDeleteClick)
-      leftG.append('circle')
+      const LG = node.append('g').on('click', handleDeleteClick)
+      LG.append('circle')
         .attr("r", R/2)
         .attr('fill', 'red')
         .attr("cx", -(R + R/2))
-      leftG.append('text').text('删除')
+      LG.append('text').text('删除')
       .attr("x", -(R + 2*fontSize))
     }
 
-    const root = d3.hierarchy(data);
+    function getRoot(data) {
+      const root = d3.hierarchy(data);
+      root.count()
+      leafCount = root.value;
   
-    root.x0 = dy / 2;
-    root.y0 = 0;
-    root.descendants().forEach((d, i) => {
-      if (d.height === 0) leafCount++
-      d.id = i;
-      d._children = d.children;
-      if (d.depth && d.data.name.length !== 7) d.children = null;
-    });
+      root.x0 = dy / 2;
+      root.y0 = 0;
+      root.descendants().forEach((d, i) => {
+        d.id = d.data.id ? d.data.id : i;
+        d._children = d.children;
+      });
+
+      return root;
+    }
   
     const svg = d3.create("svg")
-        .attr("width", width)
-        .attr("height", dx)
-        .attr("viewBox", [-margin.left, -margin.top, width, dx])
-        .style("font", "10px sans-serif")
+        .style("font", "12px sans-serif")
         .style("user-select", "none");
   
     const gLink = svg.append("g")
@@ -155,6 +214,8 @@
   
     const gNode = svg.append("g")
         .attr("cursor", "pointer");
+    
+    root = getRoot(data);
   
     function update(source) {
       const duration = d3.event && d3.event.altKey ? 2500 : 250;
@@ -164,15 +225,7 @@
       // Compute the new tree layout.
       tree(root);
   
-      let left = root;
-      let right = root;
-      root.eachBefore(node => {
-        if (node.x < left.x) left = node;
-        if (node.x > right.x) right = node;
-      });
-  
       // svg height
-      // const height = right.x - left.x + margin.top + margin.bottom;
       const height = calcHeight(R, dx, leafCount)
       const svgTranslateX = calcSVGTranslateX(R)
       const svgTranslateY = calcSVGTranslateY(R, dx, leafCount)
@@ -204,9 +257,7 @@
   
       nodeEnter.append("text")
           .attr("dy", "0.31em")
-          // .attr("x", d => d._children ? -6 : 6)
           .attr("x", textTranslateX)
-          // .attr("text-anchor", d => d._children ? "end" : "start")
           .text(d => d.data.name)
         .clone(true).lower()
           .attr("stroke-linejoin", "round")
