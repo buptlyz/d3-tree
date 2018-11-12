@@ -1,7 +1,3 @@
-/**
- * @param data hierarchyData
- */
-
  const R = 30
  const width = 960
  const height = 960
@@ -71,7 +67,7 @@ class Tree {
 
   initSVG() {
     this.svg = d3.create("svg")
-        .style("font", `${fontSize} sans-serif`)
+        .style("font", "12px sans-serif")
         .style("user-select", "none");
   
     this.gLink = this.svg.append("g")
@@ -397,4 +393,5 @@ const newData = {
 }
 
 const treeInstance = new Tree(data, '#tree')
+treeInstance.update(treeInstance.root)
 window.treeInstance = treeInstance
